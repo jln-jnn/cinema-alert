@@ -24,7 +24,7 @@ def get_french_title_wikidata(title, year):
       OPTIONAL {{ ?film rdfs:label ?frTitle FILTER(LANG(?frTitle) = "fr") }}
     }}
     LIMIT 1
-    ""
+    """
     url = "https://query.wikidata.org/sparql"
     headers = {"Accept": "application/sparql-results+json"}
     r = requests.get(url, params={"query": query}, headers=headers)
