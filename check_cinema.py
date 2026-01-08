@@ -55,6 +55,7 @@ def send_email(films):
         s.send_message(msg)
 
 def main():
+    print("WATCHLIST DETECTÉE :", sorted(watchlist)[:10])
     watchlist = get_watchlist()
     paris = get_paris_cine_films()
     notified = load_state()
