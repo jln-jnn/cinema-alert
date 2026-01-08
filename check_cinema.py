@@ -35,7 +35,7 @@ def get_french_title_wikidata(title, year):
         return title.lower()  # fallback → titre anglais
 
 
-def get_watchlist_from_csv(csv_file="watchlist.csv"):
+def get_watchlist_from_csv(csv_file="watchlist-tchernoalpha.csv"):
     """Lit le CSV Letterboxd et retourne un dict anglais → français"""
     df = pd.read_csv(csv_file)
     watchlist = {}
