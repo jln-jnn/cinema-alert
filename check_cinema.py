@@ -1,3 +1,4 @@
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 import json
@@ -13,14 +14,39 @@ EMAIL_FROM = os.environ["EMAIL_FROM"]
 EMAIL_TO = os.environ["EMAIL_TO"]
 EMAIL_PASSWORD = os.environ["EMAIL_PASSWORD"]
 
-def get_watchlist():
-    import re
-    url = f"https://letterboxd.com/{LETTERBOXD_USER}/watchlist/"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    html = requests.get(url, headers=headers).text
-    # Cherche tous les titres entre <img ... alt="Titre du film" ...>
-    titles = re.findall(r'alt="([^"]+)"', html)
-    return set(t.lower() for t in titles)
+def get_french_title_wikidata(title, year):
+    query = f"""
+    SELECT ?frTitle WHERE {{
+      ?film wdt:P31 wd:Q11424;
+            rdfs:label "{title}"@en;
+            wdt:P577 ?date.
+      FILTER(YEAR(?date) = {year})
+      OPTIONAL {{ ?film rdfs:label ?frTitle FILTER(LANG(?frTitle) = "fr") }}
+    }}
+    LIMIT 1
+    ""
+    url = "https://query.wikidata.org/sparql"
+    headers = {"Accept": "application/sparql-results+json"}
+    r = requests.get(url, params={"query": query}, headers=headers)
+    data = r.json()
+    try:
+        return data["results"]["bindings"][0]["frTitle"]["value"].lower()
+    except (IndexError, KeyError):
+        return title.lower()  # fallback → titre anglais
+
+
+def get_watchlist_from_csv(csv_file="watchlist.csv"):
+    """Lit le CSV Letterboxd et retourne un dict anglais → français"""
+    df = pd.read_csv(csv_file)
+    watchlist = {}
+    for _, row in df.iterrows():
+        title = str(row['Name']).strip()
+        year = int(row['Year']) if not pd.isna(row['Year']) else None
+        fr_title = get_french_title_wikidata(title, year)
+        print(f"{title} ({year}) → {fr_title}")  # log dans GitHub Actions
+        watchlist[title.lower()] = fr_title
+    return watchlist
+
 
 
 def get_paris_cine_films():
@@ -55,7 +81,8 @@ def send_email(films):
         s.send_message(msg)
 
 def main():
-    watchlist = get_watchlist()
+    watchlist = get_watchlist_from_csv("watchlist.csv")
+
     print("WATCHLIST DETECTÉE :", sorted(watchlist)[:10])
     paris = get_paris_cine_films()
     notified = load_state()
