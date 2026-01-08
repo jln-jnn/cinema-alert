@@ -81,7 +81,7 @@ def send_email(films):
         s.send_message(msg)
 
 def main():
-    watchlist = get_watchlist_from_csv("watchlist.csv")
+    watchlist = get_watchlist_from_csv("watchlist-tchernoalpha.csv")
 
     print("WATCHLIST DETECTÉE :", sorted(watchlist)[:10])
     paris = get_paris_cine_films()
