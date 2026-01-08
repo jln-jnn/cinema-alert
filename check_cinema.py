@@ -1,24 +1,26 @@
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-import json
 import smtplib
 from email.message import EmailMessage
 import os
 
-LETTERBOXD_USER = "TchernoAlpha"
-PARIS_CINE_URL = "https://paris-cine.info"
-STATE_FILE = "notified.json"
+# ------------------ CONFIG ------------------
+CSV_FILE = "watchlist-tchernoalpha.csv"
+EMAIL_FROM = os.environ.get("EMAIL_FROM")
+EMAIL_TO = os.environ.get("EMAIL_TO")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
-EMAIL_FROM = os.environ["EMAIL_FROM"]
-EMAIL_TO = os.environ["EMAIL_TO"]
-EMAIL_PASSWORD = os.environ["EMAIL_PASSWORD"]
+# ------------------ FONCTIONS ------------------
 
 def get_french_title_wikidata(title, year):
+    """Récupère le titre français depuis Wikidata, fallback vers titre anglais si erreur"""
+    if year is None:
+        year = 0  # fallback pour éviter None dans SPARQL
     query = f"""
     SELECT ?frTitle WHERE {{
       ?film wdt:P31 wd:Q11424;
-            rdfs:label "{title}"@en;
+            rdfs:label "{title.replace('"','\\"')}"@en;
             wdt:P577 ?date.
       FILTER(YEAR(?date) = {year})
       OPTIONAL {{ ?film rdfs:label ?frTitle FILTER(LANG(?frTitle) = "fr") }}
@@ -27,15 +29,16 @@ def get_french_title_wikidata(title, year):
     """
     url = "https://query.wikidata.org/sparql"
     headers = {"Accept": "application/sparql-results+json"}
-    r = requests.get(url, params={"query": query}, headers=headers)
-    data = r.json()
     try:
+        r = requests.get(url, params={"query": query}, headers=headers, timeout=10)
+        r.raise_for_status()  # HTTP != 200 → exception
+        data = r.json()
         return data["results"]["bindings"][0]["frTitle"]["value"].lower()
-    except (IndexError, KeyError):
+    except Exception as e:
+        print(f"⚠️ Impossible de récupérer le titre français pour {title} ({year}): {e}")
         return title.lower()  # fallback → titre anglais
 
-
-def get_watchlist_from_csv(csv_file="watchlist-tchernoalpha.csv"):
+def get_watchlist_from_csv(csv_file=CSV_FILE):
     """Lit le CSV Letterboxd et retourne un dict anglais → français"""
     df = pd.read_csv(csv_file)
     watchlist = {}
@@ -47,49 +50,45 @@ def get_watchlist_from_csv(csv_file="watchlist-tchernoalpha.csv"):
         watchlist[title.lower()] = fr_title
     return watchlist
 
-
-
 def get_paris_cine_films():
-    soup = BeautifulSoup(requests.get(PARIS_CINE_URL).text, "html.parser")
+    """Scraper ParisCineInfo pour récupérer les films actuellement à l'affiche"""
+    url = "https://paris-cine.info/"
+    soup = BeautifulSoup(requests.get(url).text, "html.parser")
     films = set()
-    for h in soup.find_all(["h2", "h3"]):
-        films.add(h.text.strip().lower())
+    # ATTENTION : adapter le select si le HTML change
+    for h2 in soup.select("h2.film-title"):
+        films.add(h2.text.strip().lower())
     return films
 
-def load_state():
-    if os.path.exists(STATE_FILE):
-        with open(STATE_FILE) as f:
-            return set(json.load(f))
-    return set()
-
-def save_state(state):
-    with open(STATE_FILE, "w") as f:
-        json.dump(sorted(state), f)
-
-def send_email(films):
+def send_email(matches):
+    """Envoie un mail avec la liste des films détectés"""
+    if not matches:
+        return
     msg = EmailMessage()
-    msg["Subject"] = "🎬 Films de ta watchlist en salle à Paris"
+    msg["Subject"] = f"Films à l'affiche de ta watchlist"
     msg["From"] = EMAIL_FROM
     msg["To"] = EMAIL_TO
-    msg.set_content(
-        "Bonne nouvelle !\n\n" +
-        "\n".join(f"• {f.title()}" for f in films) +
-        f"\n\nVoir les séances : {PARIS_CINE_URL}"
-    )
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
-        s.login(EMAIL_FROM, EMAIL_PASSWORD)
-        s.send_message(msg)
+    msg.set_content("Films détectés :\n" + "\n".join(matches))
+    
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        smtp.login(EMAIL_FROM, EMAIL_PASSWORD)
+        smtp.send_message(msg)
+
+# ------------------ MAIN ------------------
 
 def main():
-    watchlist = get_watchlist_from_csv("watchlist-tchernoalpha.csv")
-
-    print("WATCHLIST DETECTÉE :", sorted(watchlist)[:10])
+    watchlist = get_watchlist_from_csv(CSV_FILE)
     paris = get_paris_cine_films()
-    notified = load_state()
-    matches = watchlist & paris - notified
-
+    
+    matches = set()
+    for en_title, fr_title in watchlist.items():
+        if fr_title in paris:
+            matches.add(en_title)  # tu peux changer en fr_title si tu veux le français dans le mail
+    
     if matches:
         send_email(matches)
-        save_state(notified | matches)
+    else:
+        print("Aucun match cette semaine.")
 
-main()
+if __name__ == "__main__":
+    main()
