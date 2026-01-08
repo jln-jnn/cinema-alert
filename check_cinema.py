@@ -59,7 +59,7 @@ def main():
     print("WATCHLIST DETECTÉE :", sorted(watchlist)[:10])
     paris = get_paris_cine_films()
     notified = load_state()
-    matches = watchlist & paris - notified
+    matches = {"test film"}  # force un film pour tester l'envoi d'email
     if matches:
         send_email(matches)
         save_state(notified | matches)
