@@ -1,0 +1,32 @@
+name: Cinema Alert
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # tous les lundis à 9h UTC
+  workflow_dispatch:     # permet de lancer manuellement depuis GitHub
+
+jobs:
+  run_cinema_alert:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Install dependencies
+      run: pip install pandas requests beautifulsoup4
+
+    - name: Generate master CSV
+      run: python generate_master_csv.py
+
+    - name: Run cinema alert
+      run: python check_cinema.py
+      env:
+        EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
