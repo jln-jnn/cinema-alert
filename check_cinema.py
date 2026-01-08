@@ -14,14 +14,14 @@ EMAIL_TO = os.environ["EMAIL_TO"]
 EMAIL_PASSWORD = os.environ["EMAIL_PASSWORD"]
 
 def get_watchlist():
+    import re
     url = f"https://letterboxd.com/{LETTERBOXD_USER}/watchlist/"
-    soup = BeautifulSoup(requests.get(url).text, "html.parser")
-    films = set()
-    for img in soup.select("li.poster-container img"):
-        title = img.get("alt")
-        if title:
-            films.add(title.lower())
-    return films
+    headers = {"User-Agent": "Mozilla/5.0"}
+    html = requests.get(url, headers=headers).text
+    # Cherche tous les titres entre <img ... alt="Titre du film" ...>
+    titles = re.findall(r'alt="([^"]+)"', html)
+    return set(t.lower() for t in titles)
+
 
 def get_paris_cine_films():
     soup = BeautifulSoup(requests.get(PARIS_CINE_URL).text, "html.parser")
