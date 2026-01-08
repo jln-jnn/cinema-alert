@@ -17,10 +17,14 @@ def get_french_title_wikidata(title, year):
     """Récupère le titre français depuis Wikidata, fallback vers titre anglais si erreur"""
     if year is None:
         year = 0  # fallback pour éviter None dans SPARQL
+    
+    # Échapper les guillemets pour ne pas casser le f-string
+    safe_title = title.replace('"', '\\"')
+    
     query = f"""
     SELECT ?frTitle WHERE {{
       ?film wdt:P31 wd:Q11424;
-            rdfs:label "{title.replace('"','\\"')}"@en;
+            rdfs:label "{safe_title}"@en;
             wdt:P577 ?date.
       FILTER(YEAR(?date) = {year})
       OPTIONAL {{ ?film rdfs:label ?frTitle FILTER(LANG(?frTitle) = "fr") }}
