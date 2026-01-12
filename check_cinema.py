@@ -6,6 +6,8 @@ from email.message import EmailMessage
 import os
 
 CSV_FULL = "watchlist_full.csv"
+df = pd.read_csv(CSV_FULL)
+
 EMAIL_FROM = os.environ.get("EMAIL_FROM")
 EMAIL_TO = os.environ.get("EMAIL_TO")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
