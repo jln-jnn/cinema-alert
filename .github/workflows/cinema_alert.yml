@@ -18,6 +18,9 @@ jobs:
       with:
         python-version: 3.11
 
+    - name: Extraire IMDb ID
+      run: python extract_imdb_from_letterboxd.py
+
     - name: Install dependencies
       run: pip install pandas requests beautifulsoup4
 
