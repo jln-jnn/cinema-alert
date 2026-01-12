@@ -1,32 +1,42 @@
 name: Cinema Alert
 
+# -----------------------------
+# Quand le workflow se lance
+# -----------------------------
 on:
   schedule:
-    - cron: '0 9 * * 1'
-  workflow_dispatch:
+    - cron: '0 9 * * 1'  # tous les lundis à 9h UTC
+  workflow_dispatch:     # permet de lancer manuellement depuis GitHub
 
 jobs:
   run_cinema_alert:
     runs-on: ubuntu-latest
 
     steps:
+    # -----------------------------
+    # Récupérer le repo
+    # -----------------------------
     - name: Checkout repo
       uses: actions/checkout@v3
 
+    # -----------------------------
+    # Installer Python
+    # -----------------------------
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: 3.11
 
+    # -----------------------------
+    # Installer les dépendances Python
+    # -----------------------------
     - name: Install dependencies
-      run: pip install pandas requests beautifulsoup4
+      run: |
+        pip install pandas requests beautifulsoup4 fuzzywuzzy python-Levenshtein
 
-    - name: Extraire IMDb ID
-      run: python extract_imdb_from_letterboxd.py
-
-    - name: Generate master CSV
-      run: python generate_master_csv.py
-
+    # -----------------------------
+    # Lancer le script Cinema Alert
+    # -----------------------------
     - name: Run cinema alert
       run: python check_cinema.py
       env:
