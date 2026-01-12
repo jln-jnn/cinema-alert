@@ -2,8 +2,8 @@ name: Cinema Alert
 
 on:
   schedule:
-    - cron: '0 9 * * 1'  # tous les lundis à 9h UTC
-  workflow_dispatch:     # permet de lancer manuellement depuis GitHub
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
 
 jobs:
   run_cinema_alert:
@@ -18,11 +18,11 @@ jobs:
       with:
         python-version: 3.11
 
-    - name: Extraire IMDb ID
-      run: python extract_imdb_from_letterboxd.py
-
     - name: Install dependencies
       run: pip install pandas requests beautifulsoup4
+
+    - name: Extraire IMDb ID
+      run: python extract_imdb_from_letterboxd.py
 
     - name: Generate master CSV
       run: python generate_master_csv.py
