@@ -1,33 +1,37 @@
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
 import smtplib
 from email.message import EmailMessage
 import os
 
-CSV_FULL = "watchlist_full.csv"
+CSV_WATCHLIST = "watchlist-tchernoalpha.csv"
 EMAIL_FROM = os.environ.get("EMAIL_FROM")
 EMAIL_TO = os.environ.get("EMAIL_TO")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
 # -----------------------------
-# Fonction pour récupérer titre français depuis ParisCinéInfo via IMDb ID
+# Scraper ParisCinéInfo : récupère titre FR et VO
 # -----------------------------
-def get_title_pariscineinfo(imdb_id):
-    search_url = f"https://paris-cine.info/search.php?query={imdb_id}"
-    try:
-        r = requests.get(search_url, timeout=10)
-        soup = BeautifulSoup(r.text, "html.parser")
-        # Récupère le premier titre français trouvé
-        title_tag = soup.find("h2")  # adapter selon le HTML exact
-        if title_tag:
-            return title_tag.text.strip()
-    except Exception as e:
-        print(f"Erreur ParisCinéInfo pour {imdb_id}: {e}")
-    return None
+def scrape_pariscine():
+    url = "https://paris-cine.info/"  # adapter si besoin
+    r = requests.get(url, timeout=10)
+    soup = BeautifulSoup(r.text, "html.parser")
+    
+    films = []
+    for film_div in soup.select("div.film-entry"):
+        fr_tag = film_div.select_one("h2.film-title")
+        vo_tag = film_div.select_one("span.original-title")
+        if fr_tag and vo_tag:
+            fr_title = fr_tag.text.strip()
+            vo_title = vo_tag.text.strip()
+            films.append((fr_title, vo_title))
+    return films
 
 # -----------------------------
-# Fonction pour envoyer l'email
+# Envoi email
 # -----------------------------
 def send_email(matches):
     if not matches:
@@ -48,24 +52,21 @@ def send_email(matches):
 # MAIN
 # -----------------------------
 def main():
-    df = pd.read_csv(CSV_FULL)
+    # Watchlist Letterboxd
+    df = pd.read_csv(CSV_WATCHLIST)
+    watchlist_titles = [t.strip() for t in df["Name"].tolist()]  # Nom de la colonne Letterboxd
 
-    # Création mapping IMDb ID → titre FR
-    watchlist_fr = {}
-    for _, row in df.iterrows():
-        imdb_id = row.get("imdb_id")
-        if not imdb_id:
-            continue
-        title_fr = get_title_pariscineinfo(imdb_id)
-        watchlist_fr[imdb_id] = title_fr if title_fr else row["Name"]  # fallback
-
-    # Maintenant, on récupère les films à l'affiche sur ParisCinéInfo
+    # ParisCinéInfo
+    paris_films = scrape_pariscine()
+    
     matches = set()
-    for imdb_id, title_fr in watchlist_fr.items():
-        if title_fr:  # si on a trouvé le titre FR
-            matches.add(title_fr)
-
-    # Envoyer l'email si matches
+    for lb_title in watchlist_titles:
+        for fr_title, vo_title in paris_films:
+            # Fuzzy match sur le titre VO avec ton titre Letterboxd
+            ratio = fuzz.token_set_ratio(lb_title.lower(), vo_title.lower())
+            if ratio >= 80:  # seuil à ajuster si besoin
+                matches.add(fr_title)
+    
     if matches:
         send_email(sorted(matches))
     else:
