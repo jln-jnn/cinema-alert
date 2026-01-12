@@ -59,6 +59,14 @@ def main():
     # ParisCinéInfo
     paris_films = scrape_pariscine()
     
+    # -----------------------------
+    # DEBUG : vérifier ce qui a été scrappé
+    # -----------------------------
+    print(f"Nombre de films scrappés sur ParisCinéInfo : {len(paris_films)}")
+    for fr, vo in paris_films[:10]:  # affiche seulement les 10 premiers
+        print(f"{fr} → {vo}")
+
+    # Fuzzy match avec ta watchlist
     matches = set()
     for lb_title in watchlist_titles:
         for fr_title, vo_title in paris_films:
