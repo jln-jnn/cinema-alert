@@ -1,11 +1,11 @@
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
-from fuzzywuzzy import process
 import smtplib
 from email.message import EmailMessage
 import os
+import re
+import json
 
 CSV_WATCHLIST = "watchlist-tchernoalpha.csv"
 EMAIL_FROM = os.environ.get("EMAIL_FROM")
@@ -13,21 +13,30 @@ EMAIL_TO = os.environ.get("EMAIL_TO")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 
 # -----------------------------
-# Scraper ParisCinéInfo : récupère titre FR et VO
+# Scraper ParisCinéInfo : récupère titre FR et VO depuis le JS de la page d'accueil
 # -----------------------------
 def scrape_pariscine():
-    url = "https://paris-cine.info/"  # adapter si besoin
+    url = "https://paris-cine.info/"
     r = requests.get(url, timeout=10)
-    soup = BeautifulSoup(r.text, "html.parser")
-    
+    text = r.text
+
     films = []
-    for film_div in soup.select("div.film-entry"):
-        fr_tag = film_div.select_one("h2.film-title")
-        vo_tag = film_div.select_one("span.original-title")
-        if fr_tag and vo_tag:
-            fr_title = fr_tag.text.strip()
-            vo_title = vo_tag.text.strip()
-            films.append((fr_title, vo_title))
+
+    # Chercher tous les objets row = {...} dans le JS
+    pattern = r'row\s*=\s*(\{.*?\});'
+    matches = re.findall(pattern, text, re.DOTALL)
+    
+    for m in matches:
+        try:
+            # Convertir '...' en JSON valide
+            row = json.loads(m.replace("'", '"'))
+            fr_title = row.get("ti")
+            vo_title = row.get("o_ti", fr_title)  # fallback sur FR si absent
+            if fr_title:
+                films.append((fr_title.strip(), vo_title.strip()))
+        except Exception:
+            continue
+
     return films
 
 # -----------------------------
@@ -59,9 +68,7 @@ def main():
     # ParisCinéInfo
     paris_films = scrape_pariscine()
     
-    # -----------------------------
     # DEBUG : vérifier ce qui a été scrappé
-    # -----------------------------
     print(f"Nombre de films scrappés sur ParisCinéInfo : {len(paris_films)}")
     for fr, vo in paris_films[:10]:  # affiche seulement les 10 premiers
         print(f"{fr} → {vo}")
@@ -70,7 +77,6 @@ def main():
     matches = set()
     for lb_title in watchlist_titles:
         for fr_title, vo_title in paris_films:
-            # Fuzzy match sur le titre VO avec ton titre Letterboxd
             ratio = fuzz.token_set_ratio(lb_title.lower(), vo_title.lower())
             if ratio >= 80:  # seuil à ajuster si besoin
                 matches.add(fr_title)
