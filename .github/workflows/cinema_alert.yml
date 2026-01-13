@@ -37,6 +37,9 @@ jobs:
     # -----------------------------
     # Lancer le script Cinema Alert
     # -----------------------------
+    - name: Test IMDb FR
+  run: python test_imdb_fr.py
+
     - name: Run cinema alert
       run: python check_cinema.py
       env:
