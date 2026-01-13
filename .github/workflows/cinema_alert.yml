@@ -11,12 +11,10 @@ jobs:
 
     steps:
       # -----------------------------
-      # Récupérer le repo avec creds pour push
+      # Récupérer le repo
       # -----------------------------
       - name: Checkout repo
         uses: actions/checkout@v3
-        with:
-          persist-credentials: true  # <- indispensable pour push
 
       # -----------------------------
       # Installer Python
@@ -35,29 +33,32 @@ jobs:
           pip install -r requirements.txt
 
       # -----------------------------
-      # Vérifier que le CSV est présent
+      # Vérifier que le CSV existe
       # -----------------------------
       - name: Check CSV exists
         run: ls -l watchlist-tchernoalpha.csv
 
       # -----------------------------
-      # Lancer test_imdb_fr.py pour remplir TMDb ID et Titre FR
+      # Mettre à jour TMDb ID et titres FR
       # -----------------------------
       - name: Run test IMDb FR
         run: python test_imdb_fr.py
         env:
-        TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-
-- name: Push CSV mis à jour
-  run: |
-    git config user.name "github-actions"
-    git config user.email "github-actions@github.com"
-    git add watchlist-tchernoalpha.csv
-    git commit -m "Mise à jour TMDb ID et titres FR" || echo "Rien à commit"
-    git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/jln-jnn/cinema-alert.git HEAD:main
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
 
       # -----------------------------
-      # Lancer le script Cinema Alert
+      # Commit + push du CSV mis à jour
+      # -----------------------------
+      - name: Push CSV mis à jour
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add watchlist-tchernoalpha.csv
+          git commit -m "Mise à jour TMDb ID et titres FR" || echo "Rien à commit"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/jln-jnn/cinema-alert.git HEAD:main
+
+      # -----------------------------
+      # Lancer le script principal Cinema Alert
       # -----------------------------
       - name: Run cinema alert
         run: python check_cinema.py
