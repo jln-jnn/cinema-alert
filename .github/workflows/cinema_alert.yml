@@ -27,6 +27,9 @@ jobs:
           pip install -r requirements.txt
 
       # ÉTAPE DE TEST (TEMPORAIRE)
+      - name: Check CSV exists
+        run: ls -l watchlist-tchernoalpha.csv
+
       - name: Test IMDb FR
         run: python test_imdb_fr.py
 
