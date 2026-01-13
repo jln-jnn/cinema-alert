@@ -34,12 +34,13 @@ jobs:
       run: |
         pip install pandas requests beautifulsoup4 fuzzywuzzy python-Levenshtein
 
+    # ÉTAPE DE TEST (TEMPORAIRE)
+    - name: Test IMDb FR
+      run: python test_imdb_fr.py
+    
     # -----------------------------
     # Lancer le script Cinema Alert
     # -----------------------------
-    - name: Test IMDb FR
-  run: python test_imdb_fr.py
-
     - name: Run cinema alert
       run: python check_cinema.py
       env:
