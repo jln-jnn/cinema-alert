@@ -1,9 +1,5 @@
 name: Cinema Alert
 
-# Autoriser le workflow à push
-permissions:
-  contents: write  # nécessaire pour que le GITHUB_TOKEN puisse push
-
 on:
   schedule:
     - cron: '0 9 * * 1'  # tous les lundis à 9h UTC
@@ -14,42 +10,58 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # -----------------------------
       # Récupérer le repo
+      # -----------------------------
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      # -----------------------------
       # Installer Python
+      # -----------------------------
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
 
+      # -----------------------------
       # Installer les dépendances Python
+      # -----------------------------
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Vérifier que le CSV existe
+      # -----------------------------
+      # Vérifier le CSV
+      # -----------------------------
       - name: Check CSV exists
         run: ls -l watchlist-tchernoalpha.csv
 
-      # Exécuter le script test_imdb_fr pour mettre à jour le CSV
+      # -----------------------------
+      # Lancer le script test_imdb_fr.py
+      # -----------------------------
       - name: Run test IMDb FR
         run: python test_imdb_fr.py
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
 
-      # Commit et push du CSV mis à jour
+      # -----------------------------
+      # Commit & push les changements dans le CSV
+      # -----------------------------
       - name: Commit and push updated CSV
-        uses: ad-m/github-push-action@v0.9.0
-        with:
-          branch: main
-          force: true
-          directory: .
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add watchlist-tchernoalpha.csv
+          git diff --cached --quiet || git commit -m "Mise à jour TMDb ID et titres FR"
+          git push origin HEAD:main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Exécuter le script principal
+      # -----------------------------
+      # Lancer le script Cinema Alert
+      # -----------------------------
       - name: Run cinema alert
         run: python check_cinema.py
         env:
