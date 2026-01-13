@@ -1,49 +1,39 @@
 name: Cinema Alert
 
-# -----------------------------
-# Quand le workflow se lance
-# -----------------------------
 on:
   schedule:
     - cron: '0 9 * * 1'  # tous les lundis à 9h UTC
-  workflow_dispatch:     # permet de lancer manuellement depuis GitHub
+  workflow_dispatch:     # permet de lancer manuellement
 
 jobs:
   run_cinema_alert:
     runs-on: ubuntu-latest
 
     steps:
-    # -----------------------------
-    # Récupérer le repo
-    # -----------------------------
-    - name: Checkout repo
-      uses: actions/checkout@v3
+      # Récupérer le repo
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-    # -----------------------------
-    # Installer Python
-    # -----------------------------
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
+      # Installer Python
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
 
-    # -----------------------------
-    # Installer les dépendances Python
-    # -----------------------------
-    - name: Install dependencies
-      run: |
-        pip install pandas requests beautifulsoup4 fuzzywuzzy python-Levenshtein
+      # Installer les dépendances Python
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
-    # ÉTAPE DE TEST (TEMPORAIRE)
-    - name: Test IMDb FR
-      run: python test_imdb_fr.py
-    
-    # -----------------------------
-    # Lancer le script Cinema Alert
-    # -----------------------------
-    - name: Run cinema alert
-      run: python check_cinema.py
-      env:
-        EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-        EMAIL_TO: ${{ secrets.EMAIL_TO }}
-        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+      # ÉTAPE DE TEST (TEMPORAIRE)
+      - name: Test IMDb FR
+        run: python test_imdb_fr.py
+
+      # Lancer le script Cinema Alert
+      - name: Run cinema alert
+        run: python check_cinema.py
+        env:
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
