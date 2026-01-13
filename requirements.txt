@@ -1,4 +1,6 @@
-tmdbsimple
+pandas
 requests
 beautifulsoup4
-pandas
+fuzzywuzzy
+python-Levenshtein
+tmdbsimple
