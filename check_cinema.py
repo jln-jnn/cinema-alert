@@ -24,12 +24,17 @@ def scrape_pariscine():
 
     r = requests.get(url, timeout=15)
     r.raise_for_status()
-    data = r.json()
+    json_data = r.json()
 
     films = []
-    for row in data:
+
+    rows = json_data.get("data", [])
+    print(f"Nombre d’entrées brutes reçues : {len(rows)}")
+
+    for row in rows:
         fr_title = row.get("ti")
         vo_title = row.get("o_ti") or fr_title
+
         if fr_title:
             films.append((fr_title.strip(), vo_title.strip()))
 
@@ -40,6 +45,7 @@ def scrape_pariscine():
         print(f"{fr} → {vo}")
 
     return films
+
 
 
 # --------------------------------------------------
