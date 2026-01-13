@@ -38,11 +38,12 @@ jobs:
 
       # 6️⃣ Pousser les modifications du CSV sur GitHub
       - name: Push CSV update
-        uses: ad-m/github-push-action@v0.9.0
+        uses: ad-m/github-push-action@v0.6.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: main
           force: true
+          directory: .  # racine du repo
 
       # 7️⃣ Lancer le script principal Cinema Alert
       - name: Run cinema alert
