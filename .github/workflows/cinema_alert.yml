@@ -1,5 +1,9 @@
 name: Cinema Alert
 
+# Autoriser le workflow à push
+permissions:
+  contents: write  # nécessaire pour que le GITHUB_TOKEN puisse push
+
 on:
   schedule:
     - cron: '0 9 * * 1'  # tous les lundis à 9h UTC
@@ -10,42 +14,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Récupérer le repo
+      # Récupérer le repo
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      # 2️⃣ Installer Python
+      # Installer Python
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
 
-      # 3️⃣ Installer les dépendances Python
+      # Installer les dépendances Python
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 4️⃣ Vérifier que le CSV existe
+      # Vérifier que le CSV existe
       - name: Check CSV exists
         run: ls -l watchlist-tchernoalpha.csv
 
-      # 5️⃣ Lancer le script test IMDb FR
+      # Exécuter le script test_imdb_fr pour mettre à jour le CSV
       - name: Run test IMDb FR
         run: python test_imdb_fr.py
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
 
-      # 6️⃣ Pousser les modifications du CSV sur GitHub
-      - name: Push CSV update
-        uses: ad-m/github-push-action@v0.6.0
+      # Commit et push du CSV mis à jour
+      - name: Commit and push updated CSV
+        uses: ad-m/github-push-action@v0.9.0
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: main
           force: true
-          directory: .  # racine du repo
+          directory: .
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 7️⃣ Lancer le script principal Cinema Alert
+      # Exécuter le script principal
       - name: Run cinema alert
         run: python check_cinema.py
         env:
