@@ -2,39 +2,43 @@ name: Cinema Alert
 
 on:
   schedule:
-    - cron: '0 9 * * 1'  # tous les lundis à 9h UTC
-  workflow_dispatch:     # permet de lancer manuellement
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
 
 jobs:
   run_cinema_alert:
     runs-on: ubuntu-latest
 
     steps:
-      # Récupérer le repo
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      # Installer Python
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
 
-      # Installer les dépendances Python
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # ÉTAPE DE TEST (TEMPORAIRE)
-      - name: Check CSV exists
-        run: ls -l watchlist-tchernoalpha.csv
       - name: Run test IMDb FR
         run: python test_imdb_fr.py
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
 
-      # Lancer le script Cinema Alert
+      # Commit et push le CSV modifié
+      - name: Commit CSV mis à jour
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add watchlist-tchernoalpha.csv
+          git commit -m "Mise à jour TMDb ID et titres FR"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run cinema alert
         run: python check_cinema.py
         env:
