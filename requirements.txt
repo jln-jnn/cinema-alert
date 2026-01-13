@@ -1,4 +1,4 @@
+tmdbsimple
 requests
 beautifulsoup4
 pandas
-tmdbsimple
