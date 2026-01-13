@@ -29,12 +29,10 @@ jobs:
       # ÉTAPE DE TEST (TEMPORAIRE)
       - name: Check CSV exists
         run: ls -l watchlist-tchernoalpha.csv
-
       - name: Run test IMDb FR
         run: python test_imdb_fr.py
         env:
-        TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
 
       # Lancer le script Cinema Alert
       - name: Run cinema alert
