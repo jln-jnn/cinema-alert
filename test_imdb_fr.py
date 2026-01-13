@@ -1,56 +1,61 @@
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
+import time
 
 CSV_WATCHLIST = "watchlist-tchernoalpha.csv"
+MAX_TEST = 10  # nombre de films à tester
 
-def get_imdb_id_from_letterboxd(slug):
-    url = f"https://letterboxd.com/film/{slug}/"
-    r = requests.get(url, timeout=10)
-    soup = BeautifulSoup(r.text, "html.parser")
+def get_imdb_id(imdb_url):
+    if pd.isna(imdb_url):
+        return None
+    return imdb_url.strip("/").split("/")[-1]
 
-    imdb_link = soup.find("a", href=lambda x: x and "imdb.com/title" in x)
-    if imdb_link:
-        return imdb_link["href"].split("/title/")[1].split("/")[0]
-    return None
-
-def get_titles_from_imdb(imdb_id):
+def get_imdb_titles(imdb_id):
     url = f"https://www.imdb.com/title/{imdb_id}/"
-    r = requests.get(url, timeout=10)
-    soup = BeautifulSoup(r.text, "html.parser")
+    headers = {"Accept-Language": "fr-FR,fr;q=0.9"}
+    try:
+        r = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(r.text, "html.parser")
 
-    # Titre original
-    original = soup.find("h1")
-    original_title = original.text.strip() if original else None
+        # Titre original (meta)
+        original = None
+        og = soup.find("meta", property="og:title")
+        if og:
+            original = og.get("content")
 
-    # Titre français (s’il existe)
-    fr_title = None
-    akas = soup.find("a", href=lambda x: x and "releaseinfo" in x)
-    if akas:
-        fr_title = akas.text.strip()
+        # Titre FR (balise <h1>)
+        h1 = soup.find("h1")
+        fr = h1.text.strip() if h1 else None
 
-    return original_title, fr_title
+        return original, fr
+    except Exception as e:
+        print(f"❌ Erreur IMDb {imdb_id}: {e}")
+        return None, None
 
 def main():
     df = pd.read_csv(CSV_WATCHLIST)
 
-    # 👉 On teste UNIQUEMENT le premier film
-    film = df.iloc[0]
-    lb_name = film["Name"]
-    lb_slug = film["Name"].lower().replace(" ", "-")
+    tested = 0
+    for _, row in df.iterrows():
+        if tested >= MAX_TEST:
+            break
 
-    print(f"🎬 Film Letterboxd : {lb_name}")
+        title = row["Name"]
+        imdb_id = get_imdb_id(row.get("IMDb ID") or row.get("IMDbID") or row.get("IMDb"))
 
-    imdb_id = get_imdb_id_from_letterboxd(lb_slug)
-    print(f"🔗 IMDb ID : {imdb_id}")
+        if not imdb_id:
+            continue
 
-    if not imdb_id:
-        print("❌ IMDb ID non trouvé")
-        return
+        original, fr = get_imdb_titles(imdb_id)
 
-    original, fr = get_titles_from_imdb(imdb_id)
-    print(f"🌍 Titre original IMDb : {original}")
-    print(f"🇫🇷 Titre FR IMDb : {fr}")
+        print("\n🎬 Film Letterboxd :", title)
+        print("🔗 IMDb ID :", imdb_id)
+        print("🌍 Titre original IMDb :", original)
+        print("🇫🇷 Titre FR IMDb :", fr)
+
+        tested += 1
+        time.sleep(1)  # on ralentit pour éviter le blocage IMDb
 
 if __name__ == "__main__":
     main()
