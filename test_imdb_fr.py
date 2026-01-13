@@ -17,6 +17,20 @@ def get_imdb_id(imdb_url):
         return parts[4]
     return None
 
+def get_imdb_id_from_letterboxd(letterboxd_url):
+    """Scrape le lien IMDb depuis une page Letterboxd"""
+    try:
+        r = requests.get(letterboxd_url)
+        soup = BeautifulSoup(r.text, "html.parser")
+        # Cherche tous les liens contenant imdb.com/title/
+        for a in soup.find_all("a", href=True):
+            if "imdb.com/title/" in a["href"]:
+                return a["href"].split("/")[4]  # retourne tt1234567
+        return None
+    except Exception as e:
+        print(f"❌ Erreur Letterboxd {letterboxd_url}: {e}")
+        return None
+
 def get_imdb_titles(imdb_id):
     """Récupère le titre original et le titre FR depuis IMDb"""
     url = f"https://www.imdb.com/title/{imdb_id}/"
@@ -50,8 +64,13 @@ def main():
             break
 
         title = row["Name"]
-        # Essaye de récupérer IMDb ID depuis plusieurs colonnes possibles
+
+        # Essaie de récupérer IMDb ID depuis le CSV
         imdb_id = get_imdb_id(row.get("IMDb ID") or row.get("IMDbID") or row.get("IMDb"))
+
+        # Sinon scrape Letterboxd pour récupérer IMDb ID
+        if not imdb_id and "Letterboxd URI" in row:
+            imdb_id = get_imdb_id_from_letterboxd(row["Letterboxd URI"])
 
         if not imdb_id:
             print(f"⚠️ Aucun IMDb ID pour '{title}', skip")
