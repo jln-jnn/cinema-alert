@@ -7,7 +7,7 @@ import tmdbsimple as tmdb
 tmdb.API_KEY = "TA_CLE_TMDB"
 
 # Charger le CSV
-df = pd.read_csv("films_letterboxd.csv")
+df = pd.read_csv("watchlist-tchernoalpha.csv")
 print("Colonnes détectées dans le CSV :", df.columns.tolist())
 
 def get_links_from_letterboxd(url):
