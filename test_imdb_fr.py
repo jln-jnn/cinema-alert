@@ -35,6 +35,8 @@ def get_imdb_titles(imdb_id):
 
 def main():
     df = pd.read_csv(CSV_WATCHLIST)
+    print("Colonnes détectées dans le CSV :", list(df.columns))
+
 
     tested = 0
     for _, row in df.iterrows():
